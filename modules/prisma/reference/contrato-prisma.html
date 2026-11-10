@@ -1,0 +1,74 @@
+<!doctype html>
+<html lang="pt-BR">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Sintaxe do contrato</title>
+<link rel="stylesheet" href="../assets/style.css">
+</head>
+<body>
+<main>
+<p class="kicker">Prisma + PostgreSQL · Referência · Prisma ORM 8</p>
+<h1>Sintaxe do contrato</h1>
+<p class="lede">Cola rápida para escrever <code>contract.prisma</code>. Fonte: <a href="https://www.prisma.io/docs/orm/contract-authoring/psl-syntax">Prisma Docs: PSL syntax</a>.</p>
+
+<h2>Anatomia</h2>
+<pre><span class="c">// use prisma-8                      ← obrigatório na 1ª linha</span>
+
+<span class="k">model</span> User {                          <span class="c">← tabela "User"</span>
+  id        Int      <span class="a">@id @default(autoincrement())</span>
+  email     String   <span class="a">@unique</span>
+  name      String?                     <span class="c">← ? = aceita NULL</span>
+  createdAt DateTime <span class="a">@default(now())</span>
+<span class="c">//└ nome    └ Tipo    └ atributos</span>
+}</pre>
+
+<h2>Modificadores e atributos</h2>
+<div class="table-wrap">
+<table>
+  <tr><th>Sintaxe</th><th>Efeito</th></tr>
+  <tr><td><code>Tipo?</code></td><td>Campo opcional (a coluna aceita NULL)</td></tr>
+  <tr><td><code>Tipo[]</code></td><td>Lista (coluna de array no PostgreSQL)</td></tr>
+  <tr><td><code>@id</code></td><td>Chave primária</td></tr>
+  <tr><td><code>@@id([a, b])</code></td><td>Chave primária composta</td></tr>
+  <tr><td><code>@unique</code> / <code>@@unique([a, b])</code></td><td>Valor único em um campo / numa combinação de campos</td></tr>
+  <tr><td><code>@default(autoincrement())</code></td><td>O banco gera 1, 2, 3…</td></tr>
+  <tr><td><code>@default(now())</code></td><td>O banco grava o instante do insert</td></tr>
+  <tr><td><code>@default("member")</code>, <code>@default(true)</code></td><td>Padrão literal preenchido pelo banco</td></tr>
+  <tr><td><code>@onCreate(uuid())</code></td><td>O <em>app</em> (Prisma) gera o valor ao criar. Também aceita <code>uuid(7)</code>, <code>cuid(2)</code>, <code>ulid()</code>, <code>nanoid()</code> e <code>now()</code></td></tr>
+  <tr><td><code>temporal.CreatedAt</code> / <code>temporal.UpdatedAt</code></td><td>Tipos prontos para data de criação e de atualização</td></tr>
+  <tr><td><code>@map("col")</code> / <code>@@map("tabela")</code></td><td>Renomeia a coluna / a tabela no banco</td></tr>
+</table>
+</div>
+
+<h2>Que tipo usar?</h2>
+<p class="muted">Fonte: <a href="https://www.prisma.io/docs/orm/data-modeling">Prisma Docs: Data modeling</a></p>
+<div class="table-wrap">
+<table>
+  <tr><th>Dado</th><th>Tipo</th><th>Por quê</th></tr>
+  <tr><td>Texto, CEP, telefone</td><td><code>String</code> (→ <code>text</code>)</td><td>Zeros à esquerda; não se faz conta com eles</td></tr>
+  <tr><td>Contagem, nota</td><td><code>Int</code></td><td>Inteiro de 32 bits</td></tr>
+  <tr><td>Contador que pode ficar enorme</td><td><code>BigInt</code></td><td>Passa do limite do <code>Int</code></td></tr>
+  <tr><td>Dinheiro</td><td><code>Int</code> em centavos</td><td><code>Float</code> arredonda errado</td></tr>
+  <tr><td>Data e hora</td><td><code>DateTime</code> (→ <code>timestamptz(3)</code>)</td><td>Tem fuso horário e milissegundos</td></tr>
+  <tr><td>Sim/não</td><td><code>Boolean</code></td><td>Só aceita verdadeiro ou falso</td></tr>
+</table>
+</div>
+
+<h2>Lendo tutoriais antigos (v7 → v8)</h2>
+<p class="muted">Fonte: <a href="https://www.prisma.io/docs/orm/coming-from-prisma-orm-7">Coming from Prisma ORM 7</a></p>
+<div class="table-wrap">
+<table>
+  <tr><th>Prisma 7 e anteriores</th><th>Prisma 8</th></tr>
+  <tr><td><code>schema.prisma</code></td><td><code>contract.prisma</code> + <code>// use prisma-8</code></td></tr>
+  <tr><td>blocos <code>datasource</code> / <code>generator</code></td><td>conexão em <code>prisma.config.ts</code></td></tr>
+  <tr><td><code>prisma generate</code></td><td><code>npx prisma contract emit</code></td></tr>
+  <tr><td><code>prisma migrate dev</code></td><td><code>npx prisma migration plan</code> + <code>npx prisma db migrate</code></td></tr>
+  <tr><td><code>@default(uuid())</code></td><td><code>@onCreate(uuid())</code></td></tr>
+  <tr><td><code>@updatedAt</code></td><td><code>temporal.UpdatedAt</code></td></tr>
+  <tr><td>many-to-many implícito</td><td>só com model de junção explícito</td></tr>
+</table>
+</div>
+</main>
+</body>
+</html>

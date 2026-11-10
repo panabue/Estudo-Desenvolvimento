@@ -1,0 +1,54 @@
+<!doctype html>
+<html lang="pt-BR">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Glossário Prisma</title>
+<link rel="stylesheet" href="../assets/style.css">
+</head>
+<body>
+<main>
+<p class="kicker">Prisma + PostgreSQL · Referência</p>
+<h1>Glossário</h1>
+<p class="lede">Os termos que usamos no curso, em português, com o equivalente em inglês das docs.</p>
+
+<h2>Banco relacional</h2>
+<dl class="glossary">
+  <dt>Tabela <span class="muted">(table, relation)</span></dt>
+  <dd>Coleção nomeada de linhas que compartilham as mesmas colunas. <a href="https://www.postgresql.org/docs/current/tutorial-concepts.html">[PG]</a> <span class="seen">Lição 1</span></dd>
+  <dt>Linha <span class="muted">(row, registro)</span></dt>
+  <dd>Uma ocorrência na tabela, por exemplo um usuário. O SQL não garante a ordem das linhas. <span class="seen">Lição 1</span></dd>
+  <dt>Coluna <span class="muted">(column)</span></dt>
+  <dd>Um atributo da tabela, com tipo de dado fixo. <span class="seen">Lição 1</span></dd>
+  <dt>NULL</dt>
+  <dd>Ausência de valor numa coluna. Só é permitido se a coluna não for <code>NOT NULL</code> (no Prisma: campo com <code>?</code>). <span class="seen">Lição 1</span></dd>
+  <dt>Chave primária <span class="muted">(primary key)</span></dt>
+  <dd>Coluna(s) cujo valor identifica cada linha de forma única. No Prisma: <code>@id</code>. <span class="seen">Lição 1</span></dd>
+  <dt>Chave natural <span class="muted">(natural key)</span></dt>
+  <dd>Chave que vem do mundo real e é estável, como o código ISO de um país. <span class="seen">Lição 1</span></dd>
+  <dt>Chave substituta <span class="muted">(surrogate key)</span></dt>
+  <dd>Chave gerada só para identificar a linha (autoincremento, UUID). É o padrão recomendado para dados criados pelo app. <span class="seen">Lição 1</span></dd>
+  <dt>Valor padrão <span class="muted">(default)</span></dt>
+  <dd>Valor que o banco preenche quando o insert não informa a coluna. No Prisma: <code>@default(...)</code>. <span class="seen">Lição 1</span></dd>
+  <dt>Restrição de unicidade <span class="muted">(unique constraint)</span></dt>
+  <dd>Garante que duas linhas não tenham o mesmo valor numa coluna. No Prisma: <code>@unique</code>. <span class="seen">Lição 1</span></dd>
+</dl>
+
+<h2>Prisma</h2>
+<dl class="glossary">
+  <dt>Contrato <span class="muted">(contract, <code>contract.prisma</code>)</span></dt>
+  <dd>Arquivo onde você descreve seus models no Prisma ORM 8. Substitui o <code>schema.prisma</code> do v7 e começa com <code>// use prisma-8</code>. <a href="https://www.prisma.io/docs/orm/contract-authoring/psl-syntax">[PSL]</a> <span class="seen">Lição 1</span></dd>
+  <dt>Model</dt>
+  <dd>Bloco <code>model Nome { ... }</code> do contrato. Vira uma tabela no PostgreSQL. <span class="seen">Lição 1</span></dd>
+  <dt>Campo <span class="muted">(field)</span></dt>
+  <dd>Uma linha dentro do model, no formato <code>nome Tipo atributos</code>. Um campo escalar vira uma coluna. <span class="seen">Lição 1</span></dd>
+  <dt>Campo escalar <span class="muted">(scalar field)</span></dt>
+  <dd>Campo que guarda um único valor: <code>String</code>, <code>Int</code>, <code>Boolean</code>, <code>DateTime</code> etc. <span class="seen">Lição 1</span></dd>
+  <dt>Atributo <span class="muted">(attribute)</span></dt>
+  <dd>Modificador que começa com <code>@</code> (vale para um campo) ou <code>@@</code> (vale para o model inteiro). <span class="seen">Lição 1</span></dd>
+</dl>
+
+<p class="ask">Este glossário cresce a cada lição.</p>
+</main>
+</body>
+</html>

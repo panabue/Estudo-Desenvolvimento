@@ -20,7 +20,7 @@ Como a skill funciona melhor com um tema por pasta, **cada módulo deste reposit
 ```
 Estudo-Desenvolvimento/
 ├── README.md
-└── modulos/
+└── modules/
     ├── prisma/              ← primeiro módulo
     │   ├── MISSION.md          objetivo de aprendizado
     │   ├── RESOURCES.md        fontes confiáveis (docs, artigos, comunidades)
@@ -36,9 +36,9 @@ Os arquivos dentro de cada módulo são criados pela própria skill conforme as 
 
 ## Módulos
 
-| Módulo | Status | Descrição |
-|---|---|---|
-| [Prisma](modulos/prisma) | 🟡 Em andamento | ORM para Node.js/TypeScript: schema, migrations, Prisma Client e consultas |
+| Módulo                   | Status          | Descrição                                                                  |
+| ------------------------ | --------------- | -------------------------------------------------------------------------- |
+| [Prisma](modules/prisma) | 🟡 Em andamento | ORM para Node.js/TypeScript: schema, migrations, Prisma Client e consultas |
 
 Legenda: ⚪ Planejado · 🟡 Em andamento · 🟢 Concluído
 
@@ -52,8 +52,8 @@ Legenda: ⚪ Planejado · 🟡 Em andamento · 🟢 Concluído
 ### Começar um módulo novo
 
 ```bash
-mkdir modulos/<tema>
-cd modulos/<tema>
+mkdir modules/<tema>
+cd modules/<tema>
 claude
 ```
 

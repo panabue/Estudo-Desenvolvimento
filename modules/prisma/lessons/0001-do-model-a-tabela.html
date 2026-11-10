@@ -1,0 +1,252 @@
+<!doctype html>
+<html lang="pt-BR">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Do model à tabela</title>
+<link rel="stylesheet" href="../assets/style.css">
+</head>
+<body>
+<main>
+
+<p class="kicker">Prisma + PostgreSQL · Lição 1</p>
+<h1>Do model à tabela</h1>
+<p class="lede">Você já sabe descrever a forma de um dado com uma <code>interface</code>. Um model do Prisma faz o mesmo, com uma diferença: o banco garante essa forma.</p>
+
+<div class="goal">
+  <strong>Sua vitória de hoje</strong>
+  Olhar para um <code>model</code> do Prisma e dizer qual tabela ele cria: as colunas, o tipo de cada uma, quais aceitam vazio e qual é a chave primária. Depois, escrever seu primeiro model do zero. Tempo: uns 12 minutos.
+</div>
+
+<p>Sua missão é construir bancos <em>bem estruturados e limpos</em> para seus projetos. Tudo começa aqui, porque um banco limpo é, antes de tudo, um conjunto de tabelas bem desenhadas.</p>
+
+<h2>1. Um banco é um conjunto de tabelas</h2>
+
+<p>No PostgreSQL, uma <strong>tabela</strong> é uma coleção nomeada de <strong>linhas</strong>. Toda linha de uma tabela tem as mesmas <strong>colunas</strong>, e cada coluna tem um tipo de dado fixo.<sup class="cite"><a href="https://www.postgresql.org/docs/current/tutorial-concepts.html">[PG]</a></sup></p>
+
+<p>Para quem vem do TypeScript: imagine um <code>User[]</code> em que <em>todo</em> objeto obedece à mesma interface, e o runtime recusa qualquer objeto que não obedeça. É isso que o banco faz. O tipo não some depois de compilar: ele é verificado em cada escrita.</p>
+
+<div class="note">
+  <p>Um detalhe que pega muita gente: o SQL <strong>não garante a ordem das linhas</strong> numa tabela. Se precisar delas em ordem, peça explicitamente na consulta.<sup class="cite"><a href="https://www.postgresql.org/docs/current/tutorial-concepts.html">[PG]</a></sup></p>
+</div>
+
+<h2>2. Toda linha precisa de um RG</h2>
+
+<p>A <strong>chave primária</strong> é a coluna (ou o conjunto de colunas) cujo valor identifica cada linha de forma única. No Prisma você a marca com <code>@id</code>. Sem uma chave primária ou um campo único, operações como <code>update</code> e <code>delete</code> falham, porque o Prisma não sabe <em>qual</em> linha alterar.<sup class="cite"><a href="https://www.prisma.io/docs/orm/data-modeling">[Prisma]</a></sup></p>
+
+<p>Existem dois estilos de chave:<sup class="cite"><a href="https://www.prisma.io/docs/orm/data-modeling">[Prisma]</a></sup></p>
+<ul>
+  <li><strong>Chave natural</strong>: um valor que já existe no mundo real e não muda, como o código ISO de um país (<code>"BR"</code>).</li>
+  <li><strong>Chave substituta</strong> (<em>surrogate</em>): um valor gerado só para identificar a linha, como um inteiro que se autoincrementa ou um UUID. É o padrão recomendado para registros que o seu app cria. Se houver um valor natural, como o e-mail, ele vira um campo comum marcado com <code>@unique</code>.</li>
+</ul>
+
+<h2>3. Lendo um model</h2>
+
+<p>Aqui estão a mesma ideia em TypeScript, no contrato do Prisma e no banco:</p>
+
+<div class="compare">
+  <div>
+    <p class="label">TypeScript</p>
+<pre><span class="k">interface</span> User {
+  id: number
+  email: string
+  name: string | null
+  createdAt: Date
+}</pre>
+  </div>
+  <div>
+    <p class="label">contract.prisma</p>
+<pre><span class="c">// use prisma-8</span>
+
+<span class="k">model</span> User {
+  id        Int      <span class="a">@id @default(autoincrement())</span>
+  email     String   <span class="a">@unique</span>
+  name      String?
+  createdAt DateTime <span class="a">@default(now())</span>
+}</pre>
+  </div>
+</div>
+
+<p>Cada linha dentro do <code>model</code> é um <strong>campo</strong> e segue o formato <code>nome  Tipo  atributos</code>:<sup class="cite"><a href="https://www.prisma.io/docs/orm/contract-authoring/psl-syntax">[PSL]</a></sup></p>
+
+<div class="table-wrap">
+<table>
+  <tr><th>Trecho</th><th>Significado no banco</th></tr>
+  <tr><td><code>model User</code></td><td>Cria a tabela <code>"User"</code>. Sem <code>@@map</code>, a tabela tem exatamente o nome do model.</td></tr>
+  <tr><td><code>Int</code>, <code>String</code>, <code>DateTime</code></td><td>O tipo da coluna. No PostgreSQL, <code>String</code> vira <code>text</code> e <code>DateTime</code> vira <code>timestamptz(3)</code>.<sup class="cite"><a href="https://www.prisma.io/docs/orm/data-modeling">[Prisma]</a></sup></td></tr>
+  <tr><td><code>?</code> depois do tipo</td><td>A coluna aceita <strong>NULL</strong> (sem valor). Sem <code>?</code>, o valor é obrigatório.</td></tr>
+  <tr><td><code>@id</code></td><td>Chave primária.</td></tr>
+  <tr><td><code>@default(...)</code></td><td>Valor padrão que <strong>o próprio banco</strong> preenche quando o insert não informa a coluna. <code>autoincrement()</code> gera 1, 2, 3…; <code>now()</code> grava o instante atual.</td></tr>
+  <tr><td><code>@unique</code></td><td>Duas linhas nunca podem ter o mesmo valor nessa coluna.</td></tr>
+</table>
+</div>
+
+<p>Esse model gera, de forma simplificada, esta tabela:</p>
+
+<p class="label">SQL simplificado (o SQL exato fica para a lição de migrations)</p>
+<pre><span class="k">CREATE TABLE</span> "User" (
+  "id"        integer        <span class="k">PRIMARY KEY</span>,       <span class="c">-- gerado automaticamente</span>
+  "email"     text           <span class="k">NOT NULL UNIQUE</span>,
+  "name"      text,                            <span class="c">-- sem NOT NULL: aceita NULL</span>
+  "createdAt" timestamptz(3) <span class="k">NOT NULL DEFAULT</span> now()
+);</pre>
+
+<div class="note">
+  <p><strong>Atenção à versão.</strong> Esta lição usa o <strong>Prisma ORM 8</strong>, que é o que <code>npm install prisma</code> instala hoje. O arquivo se chama <code>contract.prisma</code> e precisa começar com <code>// use prisma-8</code>; sem essa linha ele é ignorado.<sup class="cite"><a href="https://www.prisma.io/docs/orm/contract-authoring/psl-syntax">[PSL]</a></sup> Se um tutorial falar em <code>schema.prisma</code>, <code>@updatedAt</code> ou <code>prisma generate</code>, ele é do Prisma 7 ou anterior. Veja a <a href="https://www.prisma.io/docs/orm/coming-from-prisma-orm-7">tabela de equivalência</a>.</p>
+</div>
+
+<h2>4. Escolhendo o tipo certo</h2>
+
+<p>Um banco "limpo" também depende de bons tipos. Duas regras da documentação oficial que evitam bugs clássicos:<sup class="cite"><a href="https://www.prisma.io/docs/orm/data-modeling">[Prisma]</a></sup></p>
+<ul>
+  <li>Identificadores como CEP ou telefone ficam em <code>String</code>: eles podem começar com zero, e um número descartaria esse zero.</li>
+  <li>Dinheiro fica em <code>Int</code>, guardando a menor unidade (centavos). <strong>Nunca</strong> use <code>Float</code> para dinheiro.</li>
+</ul>
+
+<hr>
+
+<h2>Pratique: quiz</h2>
+<p class="muted">Responda sem rolar para cima: o esforço de lembrar é o que fixa o conteúdo. <span class="quiz-score"></span></p>
+
+<div class="quiz" data-answer="2">
+  <p class="q">1. O que <code>name String?</code> significa na tabela?</p>
+  <ol>
+    <li>a coluna tem valor único</li>
+    <li>a coluna aceita valor NULL</li>
+    <li>a coluna recebe valor padrão</li>
+    <li>a coluna vira chave primária</li>
+  </ol>
+  <div class="explain">O <code>?</code> torna o campo opcional: a coluna aceita NULL. Valor único é <code>@unique</code>, valor padrão é <code>@default</code> e chave primária é <code>@id</code>.</div>
+</div>
+
+<div class="quiz" data-answer="4">
+  <p class="q">2. Sem <code>@@map</code>, qual é o nome da tabela criada por <code>model BookReview</code>?</p>
+  <ol>
+    <li><code>"book_review"</code></li>
+    <li><code>"bookreviews"</code></li>
+    <li><code>"BookReviews"</code></li>
+    <li><code>"BookReview"</code></li>
+  </ol>
+  <div class="explain">Sem <code>@@map</code>, a tabela recebe exatamente o nome do model, sem plural e sem snake_case.<sup class="cite"><a href="https://www.prisma.io/docs/orm/contract-authoring/psl-syntax">[PSL]</a></sup></div>
+</div>
+
+<div class="quiz" data-answer="1">
+  <p class="q">3. Para que serve o <code>@id</code>?</p>
+  <ol>
+    <li>para identificar cada linha de forma única</li>
+    <li>para ordenar as linhas na ordem inserida</li>
+    <li>para gerar automaticamente os tipos do TypeScript</li>
+    <li>para impedir valores vazios em outras colunas</li>
+  </ol>
+  <div class="explain">A chave primária identifica a linha. Ela <em>não</em> define a ordem: o SQL não garante a ordem das linhas.</div>
+</div>
+
+<div class="quiz" data-answer="3">
+  <p class="q">4. Quem preenche <code>createdAt DateTime @default(now())</code> quando o insert não informa esse campo?</p>
+  <ol>
+    <li>o seu código em TypeScript</li>
+    <li>o navegador do usuário final</li>
+    <li>o próprio banco de dados</li>
+    <li>o comando de contract emit</li>
+  </ol>
+  <div class="explain"><code>@default</code> define um padrão <em>do banco</em>: o PostgreSQL preenche o valor quando o insert omite a coluna.<sup class="cite"><a href="https://www.prisma.io/docs/orm/contract-authoring/psl-syntax">[PSL]</a></sup></div>
+</div>
+
+<div class="quiz" data-answer="2">
+  <p class="q">5. Qual tipo usar para um CEP como <code>"01310-100"</code>?</p>
+  <ol>
+    <li><code>Int</code></li>
+    <li><code>String</code></li>
+    <li><code>Float</code></li>
+    <li><code>BigInt</code></li>
+  </ol>
+  <div class="explain">CEP é um identificador, não uma quantidade. Pode começar com zero e você nunca vai somar CEPs. Use <code>String</code>.</div>
+</div>
+
+<div class="quiz" data-answer="4">
+  <p class="q">6. Seu app vende livros. Qual tipo usar para o preço?</p>
+  <ol>
+    <li><code>Float</code> em reais</li>
+    <li><code>String</code> em reais</li>
+    <li><code>Float</code> em centavos</li>
+    <li><code>Int</code> em centavos</li>
+  </ol>
+  <div class="explain">A documentação recomenda <code>Int</code> na menor unidade. <code>Float</code> tem erros de arredondamento (em JS, <code>0.1 + 0.2 !== 0.3</code>), e <code>String</code> impede somar e comparar.</div>
+</div>
+
+<h2>Pratique: escreva seu model</h2>
+
+<p>Um projeto pessoal clássico: registrar os livros que você leu. Escreva o <code>model Book</code> com:</p>
+<ul>
+  <li><code>id</code>: inteiro, chave primária, autoincrementado;</li>
+  <li><code>title</code>: texto, obrigatório;</li>
+  <li><code>isbn</code>: texto, obrigatório, sem repetição entre livros;</li>
+  <li><code>rating</code>: nota inteira, opcional (talvez você ainda não tenha avaliado);</li>
+  <li><code>finishedAt</code>: data em que terminou, opcional;</li>
+  <li><code>createdAt</code>: data de cadastro, preenchida automaticamente pelo banco.</li>
+</ul>
+
+<div class="model-check" data-rules='[
+  {"kind":"header","label":"O arquivo começa com // use prisma-8","hint":"A primeira linha não vazia precisa ser exatamente // use prisma-8."},
+  {"kind":"model","model":"Book","label":"Existe um model Book","hint":"Escreva model Book { ... } com B maiúsculo."},
+  {"kind":"field","model":"Book","field":"id","type":"Int","optional":false,"attr":"@id","label":"id é Int e chave primária","hint":"Tipo Int, sem ?, com @id."},
+  {"kind":"field","model":"Book","field":"id","attr":"@default\\(\\s*autoincrement\\(\\s*\\)\\s*\\)","label":"id é autoincrementado","hint":"O banco gera o valor com @default(autoincrement())."},
+  {"kind":"count","model":"Book","attr":"@id\\b","exactly":1,"label":"Só um campo é @id","hint":"Uma tabela tem uma única chave primária."},
+  {"kind":"field","model":"Book","field":"title","type":"String","optional":false,"label":"title é String obrigatória","hint":"Obrigatório significa sem ?."},
+  {"kind":"field","model":"Book","field":"isbn","type":"String","optional":false,"attr":"@unique","label":"isbn é String obrigatória e única","hint":"Sem repetição significa @unique."},
+  {"kind":"field","model":"Book","field":"rating","type":"Int","optional":true,"label":"rating é Int opcional","hint":"Opcional significa Int?."},
+  {"kind":"field","model":"Book","field":"finishedAt","type":"DateTime","optional":true,"label":"finishedAt é DateTime opcional","hint":"Use DateTime?."},
+  {"kind":"field","model":"Book","field":"createdAt","type":"DateTime","optional":false,"attr":"@default\\(\\s*now\\(\\s*\\)\\s*\\)","label":"createdAt é preenchido pelo banco","hint":"DateTime com @default(now())."}
+]'>
+<textarea aria-label="Editor do model Book">// use prisma-8
+
+model Book {
+
+}</textarea>
+</div>
+
+<h2>Recupere da memória</h2>
+<p class="muted">Tente responder em voz alta ou num papel antes de abrir cada item.</p>
+
+<details>
+  <summary>Com suas palavras: o que é uma chave primária e por que prefiro uma chave substituta?</summary>
+  <p>É o valor que identifica cada linha de forma única. A chave substituta (inteiro ou UUID gerado) é estável e não depende de dados do mundo real que podem mudar. O valor natural, como o e-mail, fica num campo <code>@unique</code>.</p>
+</details>
+<details>
+  <summary>Qual é a diferença entre <code>?</code> e <code>@default</code>?</summary>
+  <p><code>?</code> permite que a coluna fique sem valor (NULL). <code>@default</code> faz o banco preencher um valor quando ninguém informa. Um campo pode ser obrigatório e ter default, como o <code>createdAt</code>.</p>
+</details>
+<details>
+  <summary>Escreva de memória o <code>model User</code> desta lição e confira.</summary>
+<pre><span class="c">// use prisma-8</span>
+
+<span class="k">model</span> User {
+  id        Int      <span class="a">@id @default(autoincrement())</span>
+  email     String   <span class="a">@unique</span>
+  name      String?
+  createdAt DateTime <span class="a">@default(now())</span>
+}</pre>
+</details>
+
+<h2>No seu computador (opcional)</h2>
+<p>Ainda não vamos instalar nada. Pegue um projeto pessoal que você quer construir e, num arquivo ou num papel, rascunhe <strong>2 ou 3 models</strong> só com campos simples, como os desta lição (sem ligar um model ao outro ainda). Traga o rascunho para a próxima sessão e revisamos juntos se ele está "limpo".</p>
+
+<div class="source">
+  <strong>Leitura principal</strong>
+  <a href="https://www.prisma.io/docs/orm/data-modeling">Prisma Docs: Data modeling</a>. A página oficial sobre models, chaves e tipos no Prisma ORM 8. Leia as seções <em>Models</em>, <em>Primary keys</em> e <em>Scalar fields</em>; relações ficam para depois.
+</div>
+
+<p class="ask">Ficou alguma dúvida? Pergunte ao seu professor no Claude Code. Dá para pedir outro exemplo, uma explicação diferente ou mais exercícios.</p>
+
+<p>Referências deste curso: <a href="../reference/glossario.html">Glossário</a> · <a href="../reference/contrato-prisma.html">Cola: sintaxe do contrato</a></p>
+
+<nav class="lesson-nav">
+  <span></span>
+  <span class="muted">Próxima: rodar este model num PostgreSQL de verdade →</span>
+</nav>
+
+</main>
+<script src="../assets/quiz.js"></script>
+<script src="../assets/model-checker.js"></script>
+</body>
+</html>
