@@ -1,0 +1,23 @@
+// use prisma-8
+
+// Rascunho da Lição 1: 2 ou 3 models de um projeto pessoal seu.
+// Só campos simples (escalares), sem ligar um model ao outro ainda.
+// Projeto: App de divulgação de eventos, onde cada empresa só pode realizar 1 evento.
+
+model Event {
+  id      Int      @id @default(autoincrement())
+  name    String  
+  date    DateTime
+  theme   String
+  minutes Int
+  company String   @unique
+}
+
+model Company {
+  id    Int    @id @default(autoincrement())
+  name  String
+  ceo   String
+  state String
+  cnpj  String? @unique
+  cpf   String? @unique
+}

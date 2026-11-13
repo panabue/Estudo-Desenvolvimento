@@ -28,11 +28,12 @@ Estudo-Desenvolvimento/
     │   ├── lessons/            lições numeradas (.html)
     │   ├── reference/          cheat-sheets e glossários (.html)
     │   ├── learning-records/   registro do que já foi aprendido
+    │   ├── exercises/          suas práticas, uma pasta por lição + playground/
     │   └── assets/             estilos e componentes reutilizáveis
     └── <proximo-modulo>/
 ```
 
-Os arquivos dentro de cada módulo são criados pela própria skill conforme as sessões acontecem.
+Os arquivos dentro de cada módulo são criados pela própria skill conforme as sessões acontecem. A exceção é `exercises/`: lá ficam as suas respostas, salvas em arquivos para manter o histórico de práticas e para o professor revisar na sessão seguinte.
 
 ## Módulos
 

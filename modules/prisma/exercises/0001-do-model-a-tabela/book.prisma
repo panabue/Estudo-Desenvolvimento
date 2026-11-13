@@ -1,0 +1,15 @@
+// use prisma-8
+
+// Exercício da Lição 1: escreva aqui o model Book.
+// Requisitos: id (Int, PK, autoincrement), title (String),
+// isbn (String, única), rating (Int, opcional),
+// finishedAt (DateTime, opcional), createdAt (DateTime, preenchido pelo banco).
+
+model Book {
+  id         Int       @id @default(autoincrement())
+  title      String 
+  isbn       String    @unique
+  rating     Int?
+  finishedAt DateTime?
+  createdAt  DateTime  @default(now())
+}
