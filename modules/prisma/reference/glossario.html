@@ -31,7 +31,15 @@
   <dt>Valor padrão <span class="muted">(default)</span></dt>
   <dd>Valor que o banco preenche quando o insert não informa a coluna. No Prisma: <code>@default(...)</code>. <span class="seen">Lição 1</span></dd>
   <dt>Restrição de unicidade <span class="muted">(unique constraint)</span></dt>
-  <dd>Garante que duas linhas não tenham o mesmo valor numa coluna. No Prisma: <code>@unique</code>. <span class="seen">Lição 1</span></dd>
+  <dd>Garante que duas linhas não tenham o mesmo valor numa coluna. No Prisma: <code>@unique</code>. NULLs não contam como repetidos. Violação: erro <code>23505</code>. <span class="seen">Lições 1 e 2</span></dd>
+  <dt>INSERT</dt>
+  <dd>Comando SQL que grava uma linha nova. Colunas omitidas recebem o default ou NULL. <a href="https://www.postgresql.org/docs/current/dml-insert.html">[PG]</a> <span class="seen">Lição 2</span></dd>
+  <dt>Restrição NOT NULL <span class="muted">(not-null constraint)</span></dt>
+  <dd>Proíbe NULL na coluna. No Prisma: campo <em>sem</em> <code>?</code>. Violação: erro <code>23502</code>. <a href="https://www.postgresql.org/docs/current/ddl-constraints.html">[PG]</a> <span class="seen">Lição 2</span></dd>
+  <dt>SQLSTATE</dt>
+  <dd>Código de 5 caracteres que identifica um erro do PostgreSQL, como <code>23505</code>. No Prisma 8: <code>error.sqlState</code>. <a href="https://www.postgresql.org/docs/current/errcodes-appendix.html">[PG]</a> <span class="seen">Lição 2</span></dd>
+  <dt>Sequência <span class="muted">(sequence)</span></dt>
+  <dd>Gerador de números que alimenta o <code>autoincrement()</code>. Valores consumidos nunca voltam, por isso o <code>id</code> pode ter buracos. <a href="https://www.postgresql.org/docs/current/functions-sequence.html">[PG]</a> <span class="seen">Lição 2</span></dd>
 </dl>
 
 <h2>Prisma</h2>
@@ -46,6 +54,10 @@
   <dd>Campo que guarda um único valor: <code>String</code>, <code>Int</code>, <code>Boolean</code>, <code>DateTime</code> etc. <span class="seen">Lição 1</span></dd>
   <dt>Atributo <span class="muted">(attribute)</span></dt>
   <dd>Modificador que começa com <code>@</code> (vale para um campo) ou <code>@@</code> (vale para o model inteiro). <span class="seen">Lição 1</span></dd>
+  <dt>Emitir o contrato <span class="muted">(<code>prisma contract emit</code>)</span></dt>
+  <dd>Gera <code>contract.json</code> e <code>contract.d.ts</code> a partir do contrato. São os tipos que o código usa. Rode a cada mudança. <a href="https://prisma.io/docs/prisma-orm/from-scratch">[Prisma]</a> <span class="seen">Lição 2</span></dd>
+  <dt><code>db</code> <span class="muted">(client)</span></dt>
+  <dd>Objeto criado com <code>postgres({ contract, url })</code>. As consultas ficam em <code>db.orm.public.&lt;Model&gt;</code>: <code>create</code>, <code>all</code>, <code>where(...).update</code>, <code>where(...).deleteAll</code>. <span class="seen">Lição 2</span></dd>
 </dl>
 
 <p class="ask">Este glossário cresce a cada lição.</p>

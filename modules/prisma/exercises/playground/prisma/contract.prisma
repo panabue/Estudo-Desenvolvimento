@@ -1,0 +1,19 @@
+// use prisma-8
+
+model Book {
+  id         Int       @id @default(autoincrement())
+  title      String
+  isbn       String    @unique
+  rating     Int?
+  finishedAt DateTime?
+  createdAt  DateTime  @default(now())
+}
+
+model Event {
+  id      Int      @id @default(autoincrement())
+  name    String
+  date    DateTime
+  theme   String
+  minutes Int
+  company String   @unique  // vamos melhorar isto na lição 3
+}

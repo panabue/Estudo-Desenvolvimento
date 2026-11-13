@@ -108,6 +108,30 @@ th { font-weight: 600; border-bottom: 2px solid var(--fg); }
 .model-check ul.results li .hint { display: block; color: var(--muted); font-size: .85rem; }
 .model-check .summary { font-weight: 600; margin-top: .5rem; }
 
+/* INSERT simulator (assets/insert-sim.js) */
+.insert-sim { border: 1px solid var(--rule); border-radius: 6px; padding: 1rem 1.1rem; margin: 1.2rem 0; }
+.insert-sim .sim-form { display: grid; gap: .5rem; }
+.insert-sim .sim-col { display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 13rem); gap: .3rem 1rem; align-items: center; }
+.insert-sim .sim-head { display: flex; align-items: baseline; gap: .5rem; flex-wrap: wrap; min-width: 0; }
+.insert-sim .sim-head input { transform: translateY(1px); }
+.insert-sim .sim-name { font-weight: 600; }
+.insert-sim .sim-meta { font-family: var(--mono); font-size: .68rem; color: var(--muted); }
+.insert-sim .sim-col input[type="text"] {
+  width: 100%; font-family: var(--mono); font-size: .8rem; color: var(--fg);
+  background: var(--code-bg); border: 1px solid var(--rule); border-radius: 4px; padding: .3rem .5rem;
+}
+.insert-sim .sim-col input[type="text"]:disabled { opacity: .35; text-decoration: line-through; }
+@media (max-width: 640px) { .insert-sim .sim-col { grid-template-columns: 1fr; } }
+.insert-sim .sim-actions .btn { margin-right: .5rem; }
+.insert-sim .sim-msg { font-size: .92rem; padding: .5rem .7rem; border-radius: 4px; margin: .8rem 0; }
+.insert-sim .sim-msg:empty { display: none; }
+.insert-sim .sim-msg.ok { background: var(--ok-soft); border-left: 3px solid var(--ok); }
+.insert-sim .sim-msg.bad { background: var(--bad-soft); border-left: 3px solid var(--bad); font-family: var(--mono); font-size: .78rem; }
+.insert-sim .sim-detail { color: var(--muted); }
+.insert-sim table.sim-rows { font-family: var(--mono); font-size: .75rem; }
+.insert-sim table.sim-rows td.null { color: var(--muted); font-style: italic; }
+.insert-sim table.sim-rows tr.fresh td { background: var(--ok-soft); }
+
 /* Reveal (retrieval practice) */
 details { border-top: 1px solid var(--rule); padding: .6rem 0; }
 details summary { cursor: pointer; font-weight: 600; }
@@ -130,7 +154,7 @@ dl.glossary dd .seen { font-size: .8rem; color: var(--muted); }
   :root { --bg: #fff; --fg: #000; }
   html { font-size: 11pt; }
   main { max-width: none; padding: 0; }
-  .quiz button.opt, .btn, .model-check textarea, nav.lesson-nav { display: none; }
+  .quiz button.opt, .btn, .model-check textarea, .insert-sim, nav.lesson-nav { display: none; }
   pre, table, .quiz, dl.glossary dt { break-inside: avoid; }
   a { color: inherit; }
   details { display: block; } details > * { display: block; }

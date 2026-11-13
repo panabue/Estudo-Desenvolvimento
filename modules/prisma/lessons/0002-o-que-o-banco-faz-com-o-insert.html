@@ -1,0 +1,334 @@
+<!doctype html>
+<html lang="pt-BR">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>O que o banco faz com o INSERT</title>
+<link rel="stylesheet" href="../assets/style.css">
+</head>
+<body>
+<main>
+
+<p class="kicker">Prisma + PostgreSQL · Lição 2</p>
+<h1>O que o banco faz com o seu INSERT</h1>
+<p class="lede">Você escreveu os models. Agora a pergunta é o que acontece quando uma linha chega com dados faltando. A resposta explica por que o <code>@default</code> errado causa um bug sem nenhuma mensagem de erro.</p>
+
+<div class="goal">
+  <strong>Sua vitória de hoje</strong>
+  Olhar para um <code>INSERT</code> e prever o resultado: a linha é gravada, o banco preenche algum valor ou o insert falha (e com qual erro). Depois, decidir com segurança quando um campo merece <code>@default</code>. Tempo: uns 12 minutos. A prática local é opcional e fica no fim.
+</div>
+
+<h2>Aquecimento</h2>
+<p class="muted">Matéria da lição 1. Responda de cabeça antes de abrir.</p>
+<details>
+  <summary>Qual é a diferença entre <code>name String?</code> e <code>createdAt DateTime @default(now())</code>?</summary>
+  <p>O <code>?</code> permite que a coluna fique <strong>sem valor</strong> (NULL). O <code>@default</code> faz o banco <strong>preencher um valor</strong> quando ninguém informa a coluna. Hoje você vai ver as duas regras funcionando dentro do banco.</p>
+</details>
+
+<h2>1. Do contrato à tabela, em dois comandos</h2>
+
+<p>No Prisma 8, o caminho do arquivo até o banco é este:<sup class="cite"><a href="https://prisma.io/docs/prisma-orm/from-scratch">[Prisma]</a></sup></p>
+
+<div class="table-wrap">
+<table>
+  <tr><th>Passo</th><th>O que faz</th></tr>
+  <tr><td><code>prisma/contract.prisma</code></td><td>Você descreve os models.</td></tr>
+  <tr><td><code>npx prisma contract emit</code></td><td>Lê o contrato e gera <code>contract.json</code> e <code>contract.d.ts</code>, que são os <strong>tipos</strong> que o seu código TypeScript vai usar. Rode de novo a cada mudança no contrato.</td></tr>
+  <tr><td><code>npx prisma db init</code></td><td>Cria as tabelas no PostgreSQL (o <code>CREATE TABLE</code> da lição 1).</td></tr>
+</table>
+</div>
+
+<p>Depois disso, cada <code>db.orm.public.Event.create({...})</code> do seu código vira um comando SQL <code>INSERT</code>. Quem decide se a linha entra ou não é o banco, e é isso que você vai aprender a prever.</p>
+
+<h2>2. As quatro regras do INSERT</h2>
+
+<p>Um <code>INSERT</code> lista as colunas que você está enviando e os valores delas:<sup class="cite"><a href="https://www.postgresql.org/docs/current/dml-insert.html">[PG]</a></sup></p>
+
+<pre><span class="k">INSERT INTO</span> "Event" ("name", "theme", "minutes", "company")
+<span class="k">VALUES</span> ('Tech Day', 'Web', 90, 'Acme');</pre>
+
+<p>Repare que a coluna <code>"date"</code> não aparece. Para cada coluna <strong>que não foi enviada</strong>, o PostgreSQL faz isto:<sup class="cite"><a href="https://www.postgresql.org/docs/current/ddl-default.html">[PG]</a></sup></p>
+
+<ol>
+  <li><strong>Tem <code>DEFAULT</code>?</strong> O banco usa o valor padrão. É assim que o <code>id</code> (<code>autoincrement()</code>) e o <code>createdAt</code> (<code>now()</code>) se preenchem sozinhos.</li>
+  <li><strong>Não tem default?</strong> A coluna fica <strong>NULL</strong>.</li>
+  <li><strong>Ficou NULL numa coluna <code>NOT NULL</code></strong> (campo sem <code>?</code>)? O insert inteiro falha com o erro <code>23502</code>.<sup class="cite"><a href="https://www.postgresql.org/docs/current/ddl-constraints.html">[PG]</a></sup></li>
+</ol>
+<p>Depois disso, o banco aplica a quarta regra, que vale para todas as colunas:</p>
+<ol start="4">
+  <li><strong>Valor repetido numa coluna <code>@unique</code> ou <code>@id</code>?</strong> O insert falha com o erro <code>23505</code>.<sup class="cite"><a href="https://www.postgresql.org/docs/current/ddl-constraints.html">[PG]</a></sup> Esse é o mesmo código que o Prisma devolve em <code>error.sqlState</code>.<sup class="cite"><a href="https://prisma.io/docs/orm/fundamentals/writing-data">[Prisma]</a></sup></li>
+</ol>
+
+<div class="note">
+  <p>Quando um insert falha, <strong>nenhuma</strong> coluna é gravada. Não existe "gravou pela metade".</p>
+</div>
+
+<h2>3. Experimente: o seu model <code>Event</code></h2>
+
+<p>Abaixo estão duas versões do <code>Event</code> que você desenhou na lição 1. A única diferença está no campo <code>date</code>.</p>
+
+<p><strong>Antes de clicar, preveja.</strong> Desmarque a coluna <code>date</code> (o seu código "esqueceu" a data) e aperte INSERT nas duas versões. O que vai acontecer em cada uma?</p>
+
+<h3>Versão A: <code>date DateTime @default(now())</code></h3>
+<p class="muted">Este é o seu rascunho original.</p>
+<div class="insert-sim" data-config='{
+  "table": "Event",
+  "columns": [
+    {"name":"id","type":"integer","pk":true,"serial":true},
+    {"name":"name","type":"text","sample":"Tech Day"},
+    {"name":"date","type":"timestamptz","default":"now()","sample":"2026-12-05 19:00-03:00"},
+    {"name":"theme","type":"text","sample":"Web"},
+    {"name":"minutes","type":"integer","sample":"90"},
+    {"name":"company","type":"text","unique":true,"sample":"Acme"}
+  ]
+}'></div>
+
+<h3>Versão B: <code>date DateTime</code></h3>
+<p class="muted">Obrigatório e sem default.</p>
+<div class="insert-sim" data-config='{
+  "table": "Event",
+  "columns": [
+    {"name":"id","type":"integer","pk":true,"serial":true},
+    {"name":"name","type":"text","sample":"Tech Day"},
+    {"name":"date","type":"timestamptz","sample":"2026-12-05 19:00-03:00"},
+    {"name":"theme","type":"text","sample":"Web"},
+    {"name":"minutes","type":"integer","sample":"90"},
+    {"name":"company","type":"text","unique":true,"sample":"Acme"}
+  ]
+}'></div>
+
+<p class="muted">Experimente também: aperte INSERT duas vezes seguidas com a mesma <code>company</code>, ou digite <code>NULL</code> em algum campo.</p>
+
+<h3>O bug silencioso</h3>
+
+<p>Na versão A, o evento é gravado <strong>com a data de hoje</strong> e o banco não reclama. Ninguém percebe até um usuário ver o "Tech Day" marcado para o dia errado. Na versão B, o erro <code>23502</code> aparece no momento em que o bug acontece, que é exatamente quando você quer descobrir.</p>
+
+<p>Um <code>@default</code> não significa "o valor que costuma ser". Ele diz: <em>"se ninguém informar, este valor está correto"</em>. Para a data de cadastro isso é verdade. Para a data de um evento, não é.</p>
+
+<div class="goal">
+  <strong>Regra prática</strong>
+  Se o valor precisa vir do usuário, o campo fica <strong>obrigatório e sem default</strong>. Use <code>@default</code> só quando o banco realmente sabe o valor certo: <code>id</code>, <code>createdAt</code> ou um estado inicial como <code>@default("draft")</code>.
+</div>
+
+<div class="note">
+  <p><strong>Repare nos ids.</strong> Depois de um insert que falhou, o próximo <code>id</code> pula um número. O banco tira o próximo valor da sequência <em>antes</em> de checar as regras, e esse valor nunca é devolvido.<sup class="cite"><a href="https://www.postgresql.org/docs/current/functions-sequence.html">[PG]</a></sup> Buracos no <code>id</code> são normais: nunca use o <code>id</code> para contar linhas.</p>
+</div>
+
+<hr>
+
+<h2>Pratique: quiz</h2>
+<p class="muted">Responda sem rolar para cima. <span class="quiz-score"></span></p>
+
+<div class="quiz" data-answer="3">
+  <p class="q">1. Na versão B (<code>date DateTime</code>, sem default), um insert que não envia <code>"date"</code>…</p>
+  <ol>
+    <li>grava a data atual</li>
+    <li>grava NULL na coluna</li>
+    <li>falha com erro 23502</li>
+    <li>falha com erro 23505</li>
+  </ol>
+  <div class="explain">Sem default, a coluna ficaria NULL, mas ela é <code>NOT NULL</code> (campo sem <code>?</code>). Por isso o insert falha com <code>23502</code>, o erro de valor nulo.</div>
+</div>
+
+<div class="quiz" data-answer="1">
+  <p class="q">2. A sua <code>Company</code> tem <code>cpf String? @unique</code>. Um insert que não envia <code>"cpf"</code>…</p>
+  <ol>
+    <li>grava NULL no cpf</li>
+    <li>grava texto vazio nele</li>
+    <li>falha com erro 23502</li>
+    <li>gera um cpf aleatório</li>
+  </ol>
+  <div class="explain">Não há default, então a coluna fica NULL. Como o campo tem <code>?</code>, NULL é permitido e a linha entra. Texto vazio (<code>''</code>) é um valor, não é ausência de valor.</div>
+</div>
+
+<div class="quiz" data-answer="4">
+  <p class="q">3. Já existe um evento com <code>company = 'Acme'</code> e o campo é <code>@unique</code>. Um novo insert com <code>'Acme'</code>…</p>
+  <ol>
+    <li>substitui o evento antigo</li>
+    <li>grava duas linhas iguais</li>
+    <li>falha com erro 23502</li>
+    <li>falha com erro 23505</li>
+  </ol>
+  <div class="explain">É uma violação de unicidade: erro <code>23505</code>. O banco nunca substitui uma linha por conta própria. Atualizar é outro comando (<code>UPDATE</code>).</div>
+</div>
+
+<div class="quiz" data-answer="2">
+  <p class="q">4. Num app de eventos, qual destes campos merece <code>@default(now())</code>?</p>
+  <ol>
+    <li>a data do evento</li>
+    <li>a data de cadastro</li>
+    <li>o nome do evento</li>
+    <li>o tema do evento</li>
+  </ol>
+  <div class="explain">A data de cadastro é, por definição, o instante do insert, então o banco sabe o valor certo. A data do evento só o usuário sabe.</div>
+</div>
+
+<div class="quiz" data-answer="3">
+  <p class="q">5. Duas empresas sem CNPJ (<code>cnpj</code> NULL nas duas), com <code>cnpj String? @unique</code>. O segundo insert…</p>
+  <ol>
+    <li>falha por CNPJ repetido</li>
+    <li>falha por NOT NULL</li>
+    <li>grava, NULLs não colidem</li>
+    <li>substitui a primeira empresa</li>
+  </ol>
+  <div class="explain">Por padrão, o PostgreSQL considera que dois NULLs nunca são iguais, então uma coluna única aceita vários NULLs.<sup class="cite"><a href="https://www.postgresql.org/docs/current/ddl-constraints.html#DDL-CONSTRAINTS-UNIQUE-CONSTRAINTS">[PG]</a></sup> Isso é bom (várias empresas sem CNPJ), mas mostra uma lacuna: nada impede uma empresa sem CNPJ <em>e</em> sem CPF. Vamos resolver isso numa lição futura.</div>
+</div>
+
+<h2>Pratique: preveja e confira</h2>
+
+<p>Abra <code>exercises/0002-o-que-o-banco-faz-com-o-insert/previsoes.sql</code>. Ele tem 5 inserts na sua tabela <code>Company</code>, executados em ordem. Abaixo de cada um, escreva a sua previsão: <em>gravado</em> (com o <code>id</code> e o que o banco preencheu) ou <em>erro</em> (com o código). Só depois confira no simulador:</p>
+
+<div class="insert-sim" data-config='{
+  "table": "Company",
+  "columns": [
+    {"name":"id","type":"integer","pk":true,"serial":true},
+    {"name":"name","type":"text","sample":"Acme"},
+    {"name":"ceo","type":"text","sample":"Ana"},
+    {"name":"state","type":"text","sample":"SP"},
+    {"name":"cnpj","type":"text","nullable":true,"unique":true,"send":false},
+    {"name":"cpf","type":"text","nullable":true,"unique":true,"send":false}
+  ]
+}'></div>
+
+<p class="muted">Na próxima sessão eu reviso as suas previsões.</p>
+
+<h2>Recupere da memória</h2>
+<details>
+  <summary>Quais são as quatro regras do INSERT, em ordem?</summary>
+  <p>(1) Coluna omitida com default recebe o default. (2) Sem default, recebe NULL. (3) NULL numa coluna <code>NOT NULL</code> gera o erro <code>23502</code>. (4) Valor repetido numa coluna única ou na chave primária gera o erro <code>23505</code>.</p>
+</details>
+<details>
+  <summary>Por que <code>@default</code> no campo errado é pior do que um erro?</summary>
+  <p>Porque o dado errado é gravado sem nenhum aviso. O erro aparece no momento do bug. O default errado só aparece quando alguém nota o dado errado, às vezes semanas depois.</p>
+</details>
+
+<h2>No seu computador (opcional, 20 a 30 minutos)</h2>
+<p>Hoje você cria o <code>exercises/playground/</code>, o projeto que vai crescer ao longo do curso. Pode deixar para outro dia.</p>
+
+<h3>1. Criar o projeto Node</h3>
+<p>Confira se o Node é recente: <code>node -v</code> precisa mostrar 22.18+ ou 24 (24 é o recomendado).<sup class="cite"><a href="https://prisma.io/docs/prisma-orm/quickstart/postgresql">[Prisma]</a></sup> No terminal, dentro de <code>exercises/</code>:</p>
+<pre>mkdir playground
+cd playground
+npm init -y
+npm pkg set type=module
+npm install @prisma/orm-postgres dotenv
+npm install --save-dev prisma tsx typescript @types/node@22</pre>
+<p class="label">tsconfig.json (sem ele, o editor não reconhece <code>process</code>)</p>
+<pre>{
+  "compilerOptions": {
+    "target": "ES2023",
+    "module": "NodeNext",
+    "moduleResolution": "NodeNext",
+    "strict": true,
+    "types": ["node"],
+    "resolveJsonModule": true,
+    "noEmit": true,
+    "skipLibCheck": true
+  }
+}</pre>
+<p class="muted">Se aparecer <code>Cannot find module '...'</code> vindo de dentro de <code>node_modules</code>, a instalação ficou incompleta: rode <code>npm install</code> de novo na pasta do projeto.</p>
+<p class="muted"><code>npm init -y</code> cria o <code>package.json</code>, a "ficha" do projeto. <code>type=module</code> liga a sintaxe <code>import</code>, a mesma que você usa no front. <code>--save-dev</code> marca as ferramentas que só rodam na sua máquina: o CLI <code>prisma</code> e o <code>tsx</code>, que executa um arquivo <code>.ts</code> direto. <code>npx</code> roda um desses pacotes instalados. <code>@types/node</code> ensina ao TypeScript o que existe no Node (como <code>process.env</code>): no navegador você nunca precisou dele.</p>
+
+<h3>2. Ganhar um PostgreSQL de graça</h3>
+<pre>npx create-db@latest --env .env</pre>
+<p class="muted">Cria um banco temporário, sem cadastro, e grava a <code>DATABASE_URL</code> no arquivo <code>.env</code>. O banco é apagado em 24 horas, a não ser que você o reivindique pelo link exibido (é grátis).<sup class="cite"><a href="https://prisma.io/docs/postgres/npx-create-db">[Prisma]</a></sup> O <code>.env</code> já está no <code>.gitignore</code>: a URL tem a sua senha.</p>
+
+<h3>3. Configuração e contrato</h3>
+<p class="label">prisma.config.ts</p>
+<pre><span class="k">import</span> "dotenv/config";
+<span class="k">import</span> { definePrismaConfig } <span class="k">from</span> "prisma/config";
+<span class="k">import</span> { defineConfig <span class="k">as</span> ormConfig } <span class="k">from</span> "@prisma/orm-postgres/config";
+
+<span class="k">export default</span> definePrismaConfig({
+  orm: ormConfig({
+    contract: "./prisma/contract.prisma",
+    db: { connection: process.env["DATABASE_URL"]! },
+  }),
+  skills: { check: <span class="k">false</span> },
+});</pre>
+
+<p class="label">prisma/contract.prisma (o seu Book e o seu Event, já com a data corrigida)</p>
+<pre><span class="c">// use prisma-8</span>
+
+<span class="k">model</span> Book {
+  id         Int       <span class="a">@id @default(autoincrement())</span>
+  title      String
+  isbn       String    <span class="a">@unique</span>
+  rating     Int?
+  finishedAt DateTime?
+  createdAt  DateTime  <span class="a">@default(now())</span>
+}
+
+<span class="k">model</span> Event {
+  id      Int      <span class="a">@id @default(autoincrement())</span>
+  name    String
+  date    DateTime
+  theme   String
+  minutes Int
+  company String   <span class="a">@unique</span>  <span class="c">// vamos melhorar isto na lição 3</span>
+}</pre>
+
+<pre>npx prisma contract emit
+npx prisma db init</pre>
+
+<h3>4. Seu primeiro insert de verdade</h3>
+<p class="label">index.ts</p>
+<pre><span class="k">import</span> "dotenv/config";
+<span class="k">import</span> postgres <span class="k">from</span> "@prisma/orm-postgres/runtime";
+<span class="k">import</span> { contractFromJson } <span class="k">from</span> "@prisma/orm-postgres/static";
+<span class="k">import type</span> { Contract } <span class="k">from</span> "./prisma/contract.d";
+<span class="k">import</span> contractJson <span class="k">from</span> "./prisma/contract.json" <span class="k">with</span> { type: "json" };
+
+<span class="k">const</span> db = postgres({
+  contract: contractFromJson&lt;Contract&gt;(contractJson),
+  url: process.env["DATABASE_URL"]!,
+});
+
+<span class="k">async function</span> main() {
+  <span class="c">// Começa com a tabela vazia para você poder rodar várias vezes.</span>
+  <span class="k">await</span> db.orm.public.Event.where({}).deleteAll();
+
+  <span class="k">const</span> event = <span class="k">await</span> db.orm.public.Event.create({
+    name: "Tech Day",
+    date: <span class="k">new</span> Date("2026-12-05T19:00:00-03:00"),
+    theme: "Web",
+    minutes: 90,
+    company: "Acme",
+  });
+  console.log("Criado:", event);
+
+  <span class="k">await</span> db.close();
+}
+
+main().catch((error) =&gt; {
+  console.error(error);
+  process.exit(1);
+});</pre>
+<pre>npx tsx index.ts</pre>
+<p>O <code>id</code> volta preenchido: foi o banco que gerou.<sup class="cite"><a href="https://prisma.io/docs/orm/fundamentals/writing-data">[Prisma]</a></sup></p>
+
+<h3>5. Os dois experimentos</h3>
+<ol>
+  <li><strong>Esqueça a data.</strong> Comente a linha <code>date: ...</code> e rode de novo. Observe o editor (o tipo gerado deve sublinhar o <code>create</code> em vermelho) e a mensagem no terminal. Anote no <code>previsoes.sql</code> o que você viu.</li>
+  <li><strong>Repita a empresa.</strong> Volte a linha da data e, logo depois do primeiro <code>create</code>, adicione um segundo <code>create</code> com outro nome, mas com <code>company: "Acme"</code>. Rode e procure <code>23505</code> no erro.</li>
+</ol>
+
+<div class="source">
+  <strong>Leitura principal</strong>
+  <a href="https://www.postgresql.org/docs/current/ddl-default.html">PostgreSQL Docs: Default Values</a> e, logo depois, a seção <em>Not-Null Constraints</em> e <em>Unique Constraints</em> de <a href="https://www.postgresql.org/docs/current/ddl-constraints.html">Constraints</a>. São páginas curtas e oficiais sobre exatamente o que você praticou hoje. Para o setup local, siga <a href="https://prisma.io/docs/prisma-orm/from-scratch">Prisma: Set up from scratch</a>.
+</div>
+
+<p class="ask">Ficou alguma dúvida, ou algo deu erro na prática local? Cole a mensagem aqui no Claude Code e eu te ajudo. Erros de setup são parte do aprendizado.</p>
+
+<p>Referências deste curso: <a href="../reference/glossario.html">Glossário</a> · <a href="../reference/contrato-prisma.html">Cola: sintaxe do contrato</a> · <a href="../reference/insert-e-restricoes.html">Cola: INSERT e restrições</a></p>
+
+<nav class="lesson-nav">
+  <a href="0001-do-model-a-tabela.html">← Lição 1: Do model à tabela</a>
+  <span class="muted">Próxima: ligar <code>Event</code> a <code>Company</code> com uma chave estrangeira →</span>
+</nav>
+
+</main>
+<script src="../assets/quiz.js"></script>
+<script src="../assets/insert-sim.js"></script>
+</body>
+</html>

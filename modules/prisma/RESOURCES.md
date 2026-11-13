@@ -14,6 +14,12 @@
   Tabela de equivalência v7 → v8. Use para: "traduzir" tutoriais antigos que o aluno encontrar.
 - [Docs: Quickstart PostgreSQL (prisma.io)](https://prisma.io/docs/prisma-orm/quickstart/postgresql)
   Setup do zero. Use para: a primeira prática local. Com `npx create-db` dá para criar um Postgres temporário sem cadastro.
+- [Docs: Set up Prisma ORM from scratch (prisma.io)](https://prisma.io/docs/prisma-orm/from-scratch)
+  Setup manual com npm, `prisma.config.ts`, contrato, `contract emit`, `db init`, script com `db.orm` e primeira migration. Use para: o `exercises/playground/`.
+- [Docs: Writing data (prisma.io)](https://prisma.io/docs/orm/fundamentals/writing-data)
+  `create`, `select`, erros (`error.sqlState`, `23505`). Use para: lições de escrita.
+- [Docs: PostgreSQL Default Values](https://www.postgresql.org/docs/current/ddl-default.html) e [Constraints](https://www.postgresql.org/docs/current/ddl-constraints.html)
+  O que o banco faz com colunas omitidas; NOT NULL, UNIQUE (NULLs distintos), PK, FK, CHECK. Use para: a regra "CPF ou CNPJ" (CHECK) e a lição de FK.
 - [Docs: PostgreSQL Tutorial (postgresql.org)](https://www.postgresql.org/docs/current/tutorial.html)
   Tutorial oficial do PostgreSQL 18: conceitos, SQL básico, JOINs, chaves estrangeiras. Use para: fundamentos de banco e SQL.
 

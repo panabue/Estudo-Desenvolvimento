@@ -1,0 +1,62 @@
+<!doctype html>
+<html lang="pt-BR">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>INSERT e restrições</title>
+<link rel="stylesheet" href="../assets/style.css">
+</head>
+<body>
+<main>
+<p class="kicker">Prisma + PostgreSQL · Referência</p>
+<h1>INSERT e restrições</h1>
+<p class="lede">O que o PostgreSQL faz com cada coluna de um <code>INSERT</code>, e os erros que aparecem. Fontes: <a href="https://www.postgresql.org/docs/current/ddl-default.html">Default Values</a> e <a href="https://www.postgresql.org/docs/current/ddl-constraints.html">Constraints</a>.</p>
+
+<h2>Coluna não enviada no INSERT</h2>
+<div class="table-wrap">
+<table>
+  <tr><th>Contrato</th><th>No banco</th><th>Resultado</th></tr>
+  <tr><td><code>x Int @default(autoincrement())</code></td><td><code>DEFAULT nextval(...)</code></td><td>Próximo número da sequência</td></tr>
+  <tr><td><code>x DateTime @default(now())</code></td><td><code>DEFAULT now()</code></td><td>Instante do insert</td></tr>
+  <tr><td><code>x String?</code></td><td>aceita NULL, sem default</td><td>Fica <code>NULL</code></td></tr>
+  <tr><td><code>x String</code></td><td><code>NOT NULL</code>, sem default</td><td><strong>Erro 23502</strong></td></tr>
+</table>
+</div>
+
+<h2>Erros que você vai ver</h2>
+<div class="table-wrap">
+<table>
+  <tr><th>SQLSTATE</th><th>Mensagem</th><th>Causa</th></tr>
+  <tr><td><code>23502</code></td><td><code>null value in column "x" … violates not-null constraint</code></td><td>NULL (enviado ou por falta de default) em campo sem <code>?</code></td></tr>
+  <tr><td><code>23505</code></td><td><code>duplicate key value violates unique constraint "T_x_key"</code></td><td>Valor repetido em <code>@unique</code> ou <code>@id</code></td></tr>
+  <tr><td><code>22P02</code></td><td><code>invalid input syntax for type integer</code></td><td>Valor que não converte para o tipo da coluna</td></tr>
+</table>
+</div>
+<p class="muted">No Prisma 8, o código chega em <code>error.sqlState</code>. <a href="https://prisma.io/docs/orm/fundamentals/writing-data">[Prisma]</a> Lista completa: <a href="https://www.postgresql.org/docs/current/errcodes-appendix.html">PostgreSQL Error Codes</a>.</p>
+
+<h2>Fatos que pegam</h2>
+<ul>
+  <li>Insert que falha não grava <strong>nada</strong>, nem as colunas válidas.</li>
+  <li>Coluna <code>@unique</code> aceita <strong>vários NULLs</strong>: dois NULLs nunca são iguais. <a href="https://www.postgresql.org/docs/current/ddl-constraints.html#DDL-CONSTRAINTS-UNIQUE-CONSTRAINTS">[PG]</a></li>
+  <li>Texto vazio <code>''</code> é um valor, não é NULL.</li>
+  <li>Insert que falha também consome um <code>id</code> da sequência. Buracos no <code>id</code> são normais. <a href="https://www.postgresql.org/docs/current/functions-sequence.html">[PG]</a></li>
+</ul>
+
+<h2>Quando usar <code>@default</code></h2>
+<div class="goal">
+  <strong>Regra</strong>
+  Só quando o banco sabe o valor certo (id, <code>createdAt</code>, estado inicial como <code>"draft"</code>). Se o valor precisa vir do usuário, deixe o campo obrigatório e sem default: um erro na hora é melhor que um dado errado em silêncio.
+</div>
+
+<h2>Prisma 8: fluxo do contrato ao insert</h2>
+<pre>npx prisma contract emit   <span class="c"># gera contract.json + contract.d.ts (rode a cada mudança)</span>
+npx prisma db init         <span class="c"># cria as tabelas num banco novo</span>
+npx tsx index.ts           <span class="c"># roda o script</span></pre>
+<pre><span class="k">await</span> db.orm.public.Event.create({ name: "Tech Day", <span class="c">/* ... */</span> });
+<span class="k">await</span> db.orm.public.Event.all();
+<span class="k">await</span> db.orm.public.Event.where({ id: 1 }).update({ name: "Novo" });
+<span class="k">await</span> db.orm.public.Event.where({}).deleteAll();</pre>
+<p class="muted">Fonte: <a href="https://prisma.io/docs/prisma-orm/from-scratch">Prisma: Set up from scratch</a>. No v7 era <code>create({ data: {...} })</code>; no v8 os campos vão direto.</p>
+</main>
+</body>
+</html>
